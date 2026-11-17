@@ -1,7 +1,16 @@
 """Консольный анализатор зависимостей Python-пакетов."""
 
+import os
+from src.repository import normalize_package_name
+from src.visualization import (
+    generate_ascii_tree,
+    render_png,
+    save_plantuml,
+    open_image,
+)
+
 from src.graph import (
-    depth_first_search, 
+    depth_first_search,
     parse_test_graph,
     build_dependency_graph,
     get_install_order,
@@ -18,22 +27,24 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 """Создать парсер аргументов командной строки."""
+
+
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Анализ зависимостей Python-пакетов"
     )
 
     parser.add_argument(
-    "--package",
-    required=True,
-    type=validate_package,
-    help="Имя анализируемого Python-пакета"
+        "--package",
+        required=True,
+        type=validate_package,
+        help="Имя анализируемого Python-пакета"
     )
 
     parser.add_argument(
-    "--repository",
-    required=True,
-    help="URL репозитория или путь к тестовому файлу"
+        "--repository",
+        required=True,
+        help="URL репозитория или путь к тестовому файлу"
     )
 
     parser.add_argument(
@@ -50,6 +61,7 @@ def create_parser():
 
     return parser
 
+
 def validate_package(package):
     """Проверить имя анализируемого пакета."""
     if not package.strip():
@@ -59,6 +71,7 @@ def validate_package(package):
         raise ValueError("Недопустимое имя пакета")
 
     return package
+
 
 def validate_url(url):
     """Проверить корректность URL репозитория."""
@@ -72,6 +85,7 @@ def validate_url(url):
 
     return url
 
+
 def validate_file(file_path):
     """Проверить путь к тестовому файлу."""
     path = Path(file_path)
@@ -81,12 +95,14 @@ def validate_file(file_path):
 
     return file_path
 
+
 def validate_repository(repository, test_mode):
     """Проверить репозиторий с учётом режима работы."""
     if test_mode:
         return validate_file(repository)
 
     return validate_url(repository)
+
 
 def show_dependencies(package, repository):
     """Получить и вывести прямые зависимости пакета."""
@@ -102,6 +118,7 @@ def show_dependencies(package, repository):
     for dependency in dependencies:
         print(f"- {dependency}")
 
+
 def show_test_graph(package, repository):
     """Прочитать тестовый граф и выполнить обход DFS."""
     content = Path(repository).read_text(encoding="utf-8")
@@ -115,6 +132,7 @@ def show_test_graph(package, repository):
         print("Обнаружены циклы:", ", ".join(cycles))
     else:
         print("Циклы не обнаружены")
+
 
 def show_full_graph(package, repository):
     """Построить и вывести полный граф зависимостей."""
@@ -132,6 +150,7 @@ def show_full_graph(package, repository):
     else:
         print("Циклы не обнаружены")
 
+
 def show_install_order(package, repository, test_mode):
     """Вывести порядок установки пакетов."""
     if test_mode:
@@ -147,6 +166,48 @@ def show_install_order(package, repository, test_mode):
     for number, name in enumerate(order, 1):
         print(f"{number}. {name}")
 
+
+def get_plantuml_path():
+    """Получить путь к установленному PlantUML."""
+    jar = os.environ.get("PLANTUML_JAR")
+
+    if not jar:
+        raise ValueError(
+            "Не задан PLANTUML_JAR — путь к plantuml.jar"
+        )
+
+    path = Path(jar)
+
+    if not path.is_file():
+        raise ValueError(f"PlantUML не найден: {path}")
+
+    return path
+
+
+def show_visualization(package, repository, test_mode, ascii_tree):
+    """Построить и визуализировать граф зависимостей."""
+    if test_mode:
+        content = Path(repository).read_text(encoding="utf-8")
+        graph = parse_test_graph(content)
+    else:
+        package = normalize_package_name(package)
+        graph = build_dependency_graph(package, repository)
+
+    if ascii_tree:
+        print(generate_ascii_tree(graph, package))
+
+    filename = f"{package.lower().replace('-', '_')}.puml"
+    path = save_plantuml(graph, Path("output") / filename)
+    image = render_png(
+        path,
+        get_plantuml_path(),
+    )
+
+    print(f"PlantUML: {path}")
+    print(f"Изображение: {image}")
+    open_image(image)
+
+
 def main():
     """Запустить консольное приложение."""
     parser = create_parser()
@@ -155,14 +216,16 @@ def main():
     try:
         validate_repository(args.repository, args.test_mode)
 
-        show_install_order(
+        show_visualization(
             args.package,
             args.repository,
             args.test_mode,
+            args.ascii_tree,
         )
 
     except (ValueError, OSError) as error:
         parser.error(str(error))
+
 
 if __name__ == "__main__":
     main()

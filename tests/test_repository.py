@@ -6,12 +6,14 @@ from unittest.mock import patch
 from src.repository import (
     fetch_package_metadata,
     get_direct_dependencies,
+    extract_dependency_names,
 )
 
 import io
 import json
 
 from urllib.error import HTTPError
+
 
 class TestRepository(unittest.TestCase):
     """Проверки работы с репозиторием пакетов."""
@@ -70,3 +72,18 @@ class TestRepository(unittest.TestCase):
                 fetch_package_metadata(
                     "missing", "https://pypi.org/pypi"
                 )
+
+    def test_normalize_dependency_names(self):
+        """Проверить нормализацию имён Python-пакетов."""
+        dependencies = [
+            "MarkupSafe>=2.0",
+            "charset_normalizer<4",
+            "Some.Package>=1.0",
+        ]
+
+        result = extract_dependency_names(dependencies)
+
+        self.assertEqual(
+            result,
+            ["markupsafe", "charset-normalizer", "some-package"],
+        )

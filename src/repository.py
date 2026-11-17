@@ -7,6 +7,11 @@ from urllib.request import urlopen
 import re
 
 
+def normalize_package_name(name):
+    """Привести имя Python-пакета к стандартному виду."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 def fetch_package_metadata(package, repository):
     """Получить JSON-метаданные пакета по URL репозитория."""
     package_name = quote(package, safe="")
@@ -22,10 +27,12 @@ def fetch_package_metadata(package, repository):
     except (URLError, TimeoutError) as error:
         raise ValueError("Не удалось подключиться к репозиторию") from error
 
+
 def get_direct_dependencies(metadata):
     """Получить список прямых зависимостей из метаданных."""
     dependencies = metadata["info"].get("requires_dist")
     return dependencies or []
+
 
 def extract_dependency_names(dependencies):
     """Извлечь имена зависимостей без дополнительных extras."""
@@ -38,6 +45,7 @@ def extract_dependency_names(dependencies):
         match = re.match(r"^[A-Za-z0-9][A-Za-z0-9._-]*", dependency)
 
         if match:
-            names.append(match.group())
+            name = normalize_package_name(match.group())
+            names.append(name)
 
     return names

@@ -1,9 +1,8 @@
-
 """Тесты построения и обхода графа зависимостей."""
 
 import unittest
 from src.graph import (
-    depth_first_search, 
+    depth_first_search,
     parse_test_graph,
     build_dependency_graph,
     get_install_order,
@@ -55,33 +54,35 @@ class TestDependencyGraph(unittest.TestCase):
         self.assertEqual(result, ["A", "B", "C"])
         self.assertEqual(cycles, ["A"])
 
-
     def test_build_dependency_graph(self):
         """Построить граф с транзитивными зависимостями."""
         metadata = {
-            "A": {"info": {"requires_dist": ["B", "C"]}},
-            "B": {"info": {"requires_dist": ["D"]}},
-            "C": {"info": {"requires_dist": ["D"]}},
-            "D": {"info": {"requires_dist": []}},
+            "a": {"info": {"requires_dist": ["B", "C"]}},
+            "b": {"info": {"requires_dist": ["D"]}},
+            "c": {"info": {"requires_dist": ["D"]}},
+            "d": {"info": {"requires_dist": []}},
         }
 
         def fake_fetch(package, repository):
             """Вернуть тестовые метаданные вместо ответа PyPI."""
             return metadata[package]
 
-        with patch("src.graph.fetch_package_metadata",
-                side_effect=fake_fetch):
-            graph = build_dependency_graph("A", "https://pypi.org/pypi")
+        with patch(
+            "src.graph.fetch_package_metadata",
+            side_effect=fake_fetch,
+        ):
+            graph = build_dependency_graph(
+                "a", "https://pypi.org/pypi"
+            )
 
-        self.assertEqual(
-            graph,
-            {
-                "A": ["B", "C"],
-                "B": ["D"],
-                "D": [],
-                "C": ["D"],
-            },
-        )
+        expected = {
+            "a": ["b", "c"],
+            "b": ["d"],
+            "d": [],
+            "c": ["d"],
+        }
+
+        self.assertEqual(graph, expected)
 
     def test_install_order(self):
         """Проверить порядок загрузки зависимостей."""
@@ -119,3 +120,18 @@ class TestDependencyGraph(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             get_install_order(graph, "A")
+
+    def test_shared_dependency(self):
+        """Общая зависимость не должна создавать лишнюю вершину."""
+        graph = {
+            "flask": ["jinja2", "werkzeug"],
+            "jinja2": ["markupsafe"],
+            "werkzeug": ["markupsafe"],
+            "markupsafe": [],
+        }
+
+        result, cycles = depth_first_search(graph, "flask")
+
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result.count("markupsafe"), 1)
+        self.assertEqual(cycles, [])

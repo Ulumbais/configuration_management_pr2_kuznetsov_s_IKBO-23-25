@@ -9,6 +9,7 @@ from src.main import (
     create_parser
 )
 
+
 class TestPackageValidation(unittest.TestCase):
     """Проверки имени анализируемого пакета."""
 
@@ -26,6 +27,7 @@ class TestPackageValidation(unittest.TestCase):
         """Отклонить имя с недопустимыми символами."""
         with self.assertRaises(ValueError):
             validate_package("requests!!!")
+
 
 class TestRepositoryValidation(unittest.TestCase):
     """Проверки адреса репозитория и пути к файлу."""
@@ -55,6 +57,7 @@ class TestRepositoryValidation(unittest.TestCase):
 
         self.assertEqual(result, str(file_path))
 
+
 class TestArgumentParser(unittest.TestCase):
     """Проверки аргументов командной строки."""
 
@@ -67,6 +70,7 @@ class TestArgumentParser(unittest.TestCase):
                 "--repository",
                 "https://pypi.org/pypi",
             ])
+
     def test_boolean_flags(self):
         """Проверить включение тестового режима и ASCII-дерева."""
         parser = create_parser()

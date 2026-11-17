@@ -4,7 +4,9 @@ from src.repository import (
     extract_dependency_names,
     fetch_package_metadata,
     get_direct_dependencies,
+    normalize_package_name,
 )
+
 
 def parse_test_graph(content):
     """Преобразовать текстовый граф в словарь зависимостей."""
@@ -72,8 +74,9 @@ def build_dependency_graph(package, repository, max_packages=50):
         for dependency in names:
             collect(dependency)
 
-    collect(package)
+    collect(normalize_package_name(package))
     return graph
+
 
 def get_install_order(graph, start):
     """Определить порядок установки зависимостей через DFS."""
