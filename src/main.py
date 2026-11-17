@@ -1,5 +1,11 @@
 """Консольный анализатор зависимостей Python-пакетов."""
 
+from src.graph import (
+    depth_first_search, 
+    parse_test_graph,
+    build_dependency_graph,
+)
+
 from src.repository import (
     fetch_package_metadata,
     get_direct_dependencies,
@@ -95,21 +101,50 @@ def show_dependencies(package, repository):
     for dependency in dependencies:
         print(f"- {dependency}")
 
+def show_test_graph(package, repository):
+    """Прочитать тестовый граф и выполнить обход DFS."""
+    content = Path(repository).read_text(encoding="utf-8")
+    graph = parse_test_graph(content)
+
+    result, cycles = depth_first_search(graph, package)
+
+    print("Порядок обхода:", " -> ".join(result))
+
+    if cycles:
+        print("Обнаружены циклы:", ", ".join(cycles))
+    else:
+        print("Циклы не обнаружены")
+
+def show_full_graph(package, repository):
+    """Построить и вывести полный граф зависимостей."""
+    graph = build_dependency_graph(package, repository)
+    result, cycles = depth_first_search(graph, package)
+
+    print(f"Граф зависимостей пакета {package}:")
+
+    for name in result:
+        dependencies = graph.get(name, [])
+        print(f"{name}: {', '.join(dependencies) or 'нет'}")
+
+    if cycles:
+        print("Обнаружены циклы:", ", ".join(cycles))
+    else:
+        print("Циклы не обнаружены")
+
 def main():
     """Запустить консольное приложение."""
     parser = create_parser()
     args = parser.parse_args()
+
     try:
         validate_repository(args.repository, args.test_mode)
-    except ValueError as error:
-        parser.error(str(error))
 
-    if args.test_mode:
-        parser.error("Тестовый режим будет реализован на этапе 3")
+        if args.test_mode:
+            show_test_graph(args.package, args.repository)
+        else:
+            show_full_graph(args.package, args.repository)
 
-    try:
-        show_dependencies(args.package, args.repository)
-    except ValueError as error:
+    except (ValueError, OSError) as error:
         parser.error(str(error))
 
 if __name__ == "__main__":

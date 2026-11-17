@@ -4,6 +4,7 @@ from urllib.error import HTTPError, URLError
 import json
 from urllib.parse import quote
 from urllib.request import urlopen
+import re
 
 
 def fetch_package_metadata(package, repository):
@@ -25,3 +26,18 @@ def get_direct_dependencies(metadata):
     """Получить список прямых зависимостей из метаданных."""
     dependencies = metadata["info"].get("requires_dist")
     return dependencies or []
+
+def extract_dependency_names(dependencies):
+    """Извлечь имена зависимостей без дополнительных extras."""
+    names = []
+
+    for dependency in dependencies:
+        if ";" in dependency:
+            continue
+
+        match = re.match(r"^[A-Za-z0-9][A-Za-z0-9._-]*", dependency)
+
+        if match:
+            names.append(match.group())
+
+    return names
