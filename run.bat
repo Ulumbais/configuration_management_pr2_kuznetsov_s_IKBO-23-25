@@ -1,2 +1,3 @@
 @echo off
-python "%~dp0src\main.py" %*
+cd /d "%~dp0"
+python -m src.main %*

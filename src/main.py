@@ -1,5 +1,10 @@
 """Консольный анализатор зависимостей Python-пакетов."""
 
+from src.repository import (
+    fetch_package_metadata,
+    get_direct_dependencies,
+)
+
 import argparse
 import re
 from urllib.parse import urlparse
@@ -76,6 +81,20 @@ def validate_repository(repository, test_mode):
 
     return validate_url(repository)
 
+def show_dependencies(package, repository):
+    """Получить и вывести прямые зависимости пакета."""
+    metadata = fetch_package_metadata(package, repository)
+    dependencies = get_direct_dependencies(metadata)
+
+    print(f"Прямые зависимости пакета {package}:")
+
+    if not dependencies:
+        print("Зависимости отсутствуют")
+        return
+
+    for dependency in dependencies:
+        print(f"- {dependency}")
+
 def main():
     """Запустить консольное приложение."""
     parser = create_parser()
@@ -85,11 +104,13 @@ def main():
     except ValueError as error:
         parser.error(str(error))
 
-    print(f"package: {args.package}")
-    print(f"repository: {args.repository}")
-    print(f"test_mode: {args.test_mode}")
-    print(f"ascii_tree: {args.ascii_tree}")
+    if args.test_mode:
+        parser.error("Тестовый режим будет реализован на этапе 3")
 
+    try:
+        show_dependencies(args.package, args.repository)
+    except ValueError as error:
+        parser.error(str(error))
 
 if __name__ == "__main__":
     main()
