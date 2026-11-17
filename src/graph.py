@@ -74,3 +74,35 @@ def build_dependency_graph(package, repository, max_packages=50):
 
     collect(package)
     return graph
+
+def get_install_order(graph, start):
+    """Определить порядок установки зависимостей через DFS."""
+    visited = set()
+    active = []
+    order = []
+
+    def visit(package):
+        """Обработать зависимости перед самим пакетом."""
+        if package in active:
+            cycle = active[active.index(package):] + [package]
+            raise ValueError(
+                f"Циклическая зависимость: {' -> '.join(cycle)}"
+            )
+
+        if package in visited:
+            return
+
+        if package not in graph:
+            raise ValueError(f"Пакет {package} отсутствует в графе")
+
+        active.append(package)
+
+        for dependency in graph[package]:
+            visit(dependency)
+
+        active.pop()
+        visited.add(package)
+        order.append(package)
+
+    visit(start)
+    return order

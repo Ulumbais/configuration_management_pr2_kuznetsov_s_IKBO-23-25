@@ -4,6 +4,7 @@ from src.graph import (
     depth_first_search, 
     parse_test_graph,
     build_dependency_graph,
+    get_install_order,
 )
 
 from src.repository import (
@@ -131,6 +132,21 @@ def show_full_graph(package, repository):
     else:
         print("Циклы не обнаружены")
 
+def show_install_order(package, repository, test_mode):
+    """Вывести порядок установки пакетов."""
+    if test_mode:
+        content = Path(repository).read_text(encoding="utf-8")
+        graph = parse_test_graph(content)
+    else:
+        graph = build_dependency_graph(package, repository)
+
+    order = get_install_order(graph, package)
+
+    print(f"Порядок установки для {package}:")
+
+    for number, name in enumerate(order, 1):
+        print(f"{number}. {name}")
+
 def main():
     """Запустить консольное приложение."""
     parser = create_parser()
@@ -139,10 +155,11 @@ def main():
     try:
         validate_repository(args.repository, args.test_mode)
 
-        if args.test_mode:
-            show_test_graph(args.package, args.repository)
-        else:
-            show_full_graph(args.package, args.repository)
+        show_install_order(
+            args.package,
+            args.repository,
+            args.test_mode,
+        )
 
     except (ValueError, OSError) as error:
         parser.error(str(error))

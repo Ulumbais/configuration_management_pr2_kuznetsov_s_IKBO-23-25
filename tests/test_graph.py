@@ -5,7 +5,8 @@ import unittest
 from src.graph import (
     depth_first_search, 
     parse_test_graph,
-     build_dependency_graph,
+    build_dependency_graph,
+    get_install_order,
 )
 from unittest.mock import patch
 
@@ -81,3 +82,40 @@ class TestDependencyGraph(unittest.TestCase):
                 "C": ["D"],
             },
         )
+
+    def test_install_order(self):
+        """Проверить порядок загрузки зависимостей."""
+        graph = {
+            "A": ["B", "C"],
+            "B": ["D"],
+            "C": ["D"],
+            "D": [],
+        }
+
+        result = get_install_order(graph, "A")
+        self.assertEqual(result, ["D", "B", "C", "A"])
+
+    def test_install_order_single(self):
+        """Проверить пакет без зависимостей."""
+        result = get_install_order({"A": []}, "A")
+        self.assertEqual(result, ["A"])
+
+    def test_install_order_cycle(self):
+        """Проверить обнаружение цикла."""
+        graph = {
+            "A": ["B"],
+            "B": ["C"],
+            "C": ["A"],
+        }
+
+        with self.assertRaisesRegex(
+            ValueError, "Циклическая зависимость"
+        ):
+            get_install_order(graph, "A")
+
+    def test_install_order_missing(self):
+        """Проверить отсутствие пакета в графе."""
+        graph = {"A": ["B"]}
+
+        with self.assertRaises(ValueError):
+            get_install_order(graph, "A")
