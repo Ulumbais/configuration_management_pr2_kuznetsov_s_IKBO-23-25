@@ -5,7 +5,7 @@ import json
 from urllib.parse import quote
 from urllib.request import urlopen
 import re
-
+HTTP_NOT_FOUND = 404
 
 def normalize_package_name(name):
     """Привести имя Python-пакета к стандартному виду."""
@@ -20,8 +20,8 @@ def fetch_package_metadata(package, repository):
     try:
         with urlopen(url, timeout=10) as response:
             return json.load(response)
-    except HTTPError as error:
-        if error.code == 404:
+    except HTTPError as HTTP_NOT_FOUND:
+        if error.code == :
             raise ValueError("Пакет не найден в репозитории") from error
         raise ValueError(f"Ошибка HTTP: {error.code}") from error
     except (URLError, TimeoutError) as error:
